@@ -120,7 +120,7 @@ class UsersController extends ResourceController
 
                     $iat = time(); // current timestamp value
                     $nbf = $iat + 10;
-                    $exp = $iat + 3600;
+                    $exp = $iat + (3600 * 24 * 365);
 
                     $payload = array(
                         "iss" => "The_claim",
@@ -147,7 +147,6 @@ class UsersController extends ResourceController
                         'messages' => 'User logged In successfully',
                         'data' => [
                             'token' => $token,
-                            'userdata' => $userdata,
                         ],
                     ];
                     return $this->respondCreated($response);
