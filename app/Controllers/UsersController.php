@@ -5,8 +5,6 @@ namespace App\Controllers;
 use App\Models\TokensModel;
 use App\Models\UsersModel;
 use CodeIgniter\RESTful\ResourceController;
-use Exception;
-use \Firebase\JWT\JWT;
 
 class UsersController extends ResourceController
 {
@@ -69,13 +67,7 @@ class UsersController extends ResourceController
             }
         }
 
-        return $this->respondCreated($response);
-    }
-
-    private function getKey()
-    {
-        // use your special secret chars
-        return "my_application_secret";
+        return $this->respond($response, $response['status']);
     }
 
     public function login()
@@ -104,39 +96,25 @@ class UsersController extends ResourceController
                 'data' => [],
             ];
 
-            return $this->respondCreated($response);
+            return $this->respond($response, $response['status']);
 
         } else {
             $UsersModel = new UsersModel();
             $TokensModel = new TokensModel();
+            $email = $this->request->getVar("email");
+            $password = $this->request->getVar("password");
 
-            $userdata = $UsersModel->where("email", $this->request->getVar("email"))->first();
+            $userdata = $UsersModel->where("email", $email)->first();
+            $userdataPublic = $UsersModel->getPublicUserData($email);
 
             if (!empty($userdata)) {
 
-                if (password_verify($this->request->getVar("password"), $userdata['password'])) {
-
-                    $key = $this->getKey();
-
-                    $iat = time(); // current timestamp value
-                    $nbf = $iat + 10;
-                    $exp = $iat + (3600 * 24 * 365);
-
-                    $payload = array(
-                        "iss" => "The_claim",
-                        "aud" => "The_Aud",
-                        "iat" => $iat, // issued at
-                        "nbf" => $nbf, //not before in seconds
-                        "exp" => $exp, // expire time in seconds
-                        "data" => $userdata,
-                    );
-
-                    $token = JWT::encode($payload, $key);
+                if (password_verify($password, $userdata['password'])) {
 
                     $TokensData = [
                         'users_id' => $userdata['id'],
-                        'token' => $token,
-                        'created_at' => date('Y-m-d H:i:s'),
+                        'token_session' => password_hash($userdata['id'] . $created_at, PASSWORD_DEFAULT),
+                        'created_at' => $created_at,
                     ];
 
                     $TokensModel->save($TokensData);
@@ -146,10 +124,11 @@ class UsersController extends ResourceController
                         'error' => false,
                         'messages' => 'User logged In successfully',
                         'data' => [
-                            'token' => $token,
+                            'users_id' => $userdata['id'],
+                            'token' => $TokensData['token_session'],
                         ],
                     ];
-                    return $this->respondCreated($response);
+                    return $this->respond($response);
                 } else {
 
                     $response = [
@@ -158,7 +137,7 @@ class UsersController extends ResourceController
                         'messages' => 'Incorrect details',
                         'data' => [],
                     ];
-                    return $this->respondCreated($response);
+                    return $this->respond($response, $response['status']);
                 }
             } else {
                 $response = [
@@ -167,42 +146,56 @@ class UsersController extends ResourceController
                     'messages' => 'User not found',
                     'data' => [],
                 ];
-                return $this->respondCreated($response);
+                return $this->respond($response, $response['status']);
             }
         }
     }
 
     public function details()
     {
-        $key = $this->getKey();
-        $authHeader = $this->request->getHeader("Authorization");
-        $authHeader = $authHeader->getValue();
-        $token = $authHeader;
+        $UsersModel = new UsersModel();
+        $userIDHeader = $this->request->getHeader("User-ID");
+        $userIDHeader = $userIDHeader->getValue();
+        $userID = $userIDHeader;
 
-        try {
-            $decoded = JWT::decode($token, $key, array("HS256"));
+        $data = $UsersModel->find($userID);
 
-            if ($decoded) {
-
-                $response = [
-                    'status' => 200,
-                    'error' => false,
-                    'messages' => 'User details',
-                    'data' => [
-                        'profile' => $decoded,
-                    ],
-                ];
-                return $this->respondCreated($response);
-            }
-        } catch (Exception $ex) {
-
-            $response = [
-                'status' => 401,
-                'error' => true,
-                'messages' => 'Access denied',
-                'data' => [],
-            ];
-            return $this->respondCreated($response);
-        }
+        $response = [
+            'status' => 200,
+            'error' => false,
+            'messages' => 'User details',
+            'data' => [
+                'profile' => $data,
+            ],
+        ];
+        return $this->respond($response, $response['status']);
     }
+
+    public function logout()
+    {
+        $TokensModel = new TokensModel();
+        $tokenHeader = $request->getHeader("Token");
+        $tokenHeader = $tokenHeader->getValue();
+        $arr = explode(" ", $authHeader);
+        $token = $arr[1];
+
+        $deleteTokenSession = $TokensModel->where('users_id', $decoded->data->id)->delete();
+        if ($deleteTokenSession) {
+            $response = [
+                'status' => 200,
+                'error' => false,
+                'messages' => 'Logout Successfully.',
+                'data' => null,
+            ];
+        } else {
+            $response = [
+                'status' => 404,
+                'error' => true,
+                'messages' => 'User ID not found.',
+                'data' => null,
+            ];
+        }
+        return $this->respond($response, $response['status']);
+    }
+
 }

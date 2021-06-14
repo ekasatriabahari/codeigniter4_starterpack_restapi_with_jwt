@@ -14,7 +14,7 @@ class TokensModel extends Model
     protected $returnType = 'array';
     protected $useSoftDeletes = false;
     protected $protectFields = true;
-    protected $allowedFields = ['users_id', 'token', 'created_at', 'updated_at'];
+    protected $allowedFields = ['users_id', 'token_session', 'created_at', 'updated_at'];
 
     // Dates
     protected $useTimestamps = false;

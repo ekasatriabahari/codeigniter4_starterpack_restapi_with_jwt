@@ -39,4 +39,12 @@ class UsersModel extends Model
     protected $afterFind = [];
     protected $beforeDelete = [];
     protected $afterDelete = [];
+
+    public function getPublicUserData($email)
+    {
+        $builder = $this->table($this->table);
+        $builder->select('id, username, email, created_at, updated_at');
+        $qry = $builder->get()->getResultArray();
+        return $qry[0];
+    }
 }

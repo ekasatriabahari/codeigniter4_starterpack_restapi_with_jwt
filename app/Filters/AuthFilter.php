@@ -2,9 +2,11 @@
 
 namespace App\Filters;
 
+use App\Models\TokensModel;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Config\Services;
 
 class AuthFilter implements FilterInterface
 {
@@ -23,9 +25,30 @@ class AuthFilter implements FilterInterface
      *
      * @return mixed
      */
+
     public function before(RequestInterface $request, $arguments = null)
     {
-        //
+        //initiate UsersModel
+        $TokensModel = new TokensModel();
+        $tokenHeader = $request->getHeader("Authorization");
+        $tokenHeader = $tokenHeader->getValue();
+        $arr = explode(" ", $tokenHeader);
+        $token = $arr[1];
+
+        $checkToken = $TokensModel->where('token_session', $token)->findAll();
+        if (count($checkToken) > 0) {
+            return;
+        }
+
+        $res = [
+            "status" => 401,
+            "error" => true,
+            "message" => "Unauthorized.",
+            "data" => null,
+        ];
+
+        return Services::response()
+            ->setStatusCode($res['status'])->setJSON($res);
     }
 
     /**

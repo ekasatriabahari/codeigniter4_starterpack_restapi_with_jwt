@@ -21,7 +21,7 @@ class TokensMigration extends Migration
                 'constraint' => '11',
                 'unsigned' => true,
             ],
-            'token' => [
+            'token_session' => [
                 'type' => 'TEXT',
             ],
             'created_at' => [

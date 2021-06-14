@@ -35,7 +35,9 @@ $routes->setAutoRoute(true);
 $routes->group('api', function ($routes) {
     $routes->post('register', 'UsersController::register');
     $routes->post('login', 'UsersController::login');
-    $routes->get('profile', 'UsersController::details');
+    $routes->post('logout', 'UsersController::logout');
+    $routes->get('profile', 'UsersController::details', ['filter' => 'auth-api']);
+    $routes->get('tes', 'UsersController::Tes', ['filter' => 'auth-api']);
 });
 
 // use filter to auth routes
